@@ -1,4 +1,4 @@
-![logo](src/128.png)
+![logo](logo.png)
 Ace Anywhere
 ===========================
 
