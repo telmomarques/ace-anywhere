@@ -1,5 +1,7 @@
 Ace Anywhere
-==================
+===========================
+![logo](src/128.png)
+
 Transform any textarea into a code editor with this Chrome browser extension!
 Ace Anywhere uses the [Ace code editor](http://ace.c9.io/).
 
