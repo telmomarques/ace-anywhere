@@ -10,7 +10,7 @@ Ace Anywhere uses the [Ace code editor](http://ace.c9.io/).
 ##Instalation
 1. Download `AceAnywhere.crx`
 2. Open Chrome's extension manager `chrome://extensions/`
-3. Drag the download file and drop it in the extension manager
+3. Drag the downloaded file and drop it in the extension manager
 
 ##Features / Usage
 Ace Anywhere creates a context menu available on all editable fields (input, textarea, etc).
