@@ -1,3 +1,11 @@
+/*
+ * Application types
+ */
+//cPanel's text editor
+var TYPE_CPANEL = 0;
+//Everything else
+var TYPE_NORMAL = 1;
+//chrome.storage.local.clear();
 function RemoteAce()
 {
     var aceModes = ["abap", "actionscript", "ada", "asciidoc", "assembly_x86", "autohotkey", "batchfile", "c9search", "c_cpp", "clojure", "cobol", "coffee", "coldfusion", "csharp", "css", "curly", "d", "dart", "diff", "django", "dot", "ejs", "erlang", "forth", "ftl", "glsl", "golang", "groovy", "haml", "handlebars", "haskell", "haxe", "html", "html_completions", "html_ruby", "ini", "jack", "jade", "java", "javascript", "json", "jsoniq", "jsp", "jsx", "julia", "latex", "less", "liquid", "lisp", "livescript", "logiql", "lsl", "lua", "luapage", "lucene", "makefile", "markdown", "matlab", "mushcode", "mushcode_high_rules", "mysql", "nix", "objectivec", "ocaml", "pascal", "perl", "pgsql", "php", "plain_text", "powershell", "prolog", "properties", "protobuf", "python", "r", "rdoc", "rhtml", "ruby", "rust", "sass", "scad", "scala", "scheme", "scss", "sh", "sjs", "snippets", "soy_template", "space", "sql", "stylus", "svg", "tcl", "tex", "text", "textile", "toml", "mwig", "typescript", "vbscript", "velocity", "verilog", "vhdl", "xml", "xquery", "yaml"];
@@ -7,13 +15,14 @@ function RemoteAce()
     var defaultWordWrapping = false;
     var aceItcontextMenuID = null;
     var aceModesFirstLetterContextmenuIDs = [];
+    var fieldID = "";
     
     createAceItContextMenu();
     createModesContextMenu();
     createThemesContextMenu();
     createPreferencesContextMenu();
     
-    function aceIt(tabID)
+    function aceIt(tabID, fieldID)
     {
         var language = defaultLanguage;
         var theme = defaultTheme;
@@ -36,7 +45,7 @@ function RemoteAce()
                 wordWrapping = items.wordWrapping;
             }
         
-            sendMessage(tabID, {"ace": "it", "language": language, "theme": theme, "wordWrapping": wordWrapping});
+            sendMessage(tabID, {"ace": "it", "language": language, "theme": theme, "wordWrapping": wordWrapping, "elementID": fieldID});
         });
     }
     
@@ -73,6 +82,33 @@ function RemoteAce()
         });
     }
 
+    function toggleAutoLoad(url)
+    {
+        isFieldAutoLoaded(url, function(result, items)
+        {
+            var obj = {};
+            if(items["autoLoadingFields"] !== undefined)
+            {
+                obj = items["autoLoadingFields"];
+            }
+            
+            obj[url] = fieldID;
+            if(result !== false)
+            {
+                obj[url] = false;    
+            }
+            chrome.storage.local.set({autoLoadingFields: obj});
+        });
+    }
+
+    function isFieldAutoLoaded(url, callback)
+    {
+        chrome.storage.local.get("autoLoadingFields", function(items)
+        {
+            callback(items["autoLoadingFields"]!== undefined && items["autoLoadingFields"][url] !== undefined && items["autoLoadingFields"][url] !== false, items);
+        });
+    }
+
     function createAceItContextMenu()
     {
         aceItcontextMenuID = chrome.contextMenus.create(
@@ -86,15 +122,35 @@ function RemoteAce()
             }
         });
     
-        chrome.runtime.onMessage.addListener(function(message)
+        chrome.runtime.onMessage.addListener(function(message, sender)
         {
-            var title = "Ace it!";
-            if(message.type === "cpanel")
+            if(message.doWhat === "updateState")
             {
-                title = "Ace it! (cPanel detected)";
+                var title = "Ace it!";
+                if(message.type === "cpanel")
+                {
+                    title = "Ace it! (cPanel detected)";
+                }
+            
+                fieldID = message.elementID;
+                if(fieldID === "")
+                {
+                    fieldID = "_aceAnywhereOrigin";
+                }
+            
+                var autoLoadState = false;
+                isFieldAutoLoaded(message.url.href, function(result, items)
+                {
+                    autoLoadState = result;
+                    chrome.contextMenus.update("autoload", {checked: autoLoadState});
+                });
+                
+                chrome.contextMenus.update(aceItcontextMenuID, {title: title});
             }
-
-            chrome.contextMenus.update(aceItcontextMenuID, {title: title});
+            else if(message.doWhat === "aceIt")
+            {
+                aceIt(sender.tab.id, message.elementID);
+            }
         });
     }
     
@@ -188,6 +244,20 @@ function RemoteAce()
                 toggleWordWrapping(tab.id);
             }
         });
+    
+        chrome.contextMenus.create(
+        {
+            "id": "autoload",
+            "title": "Auto load Ace on this URL",
+            "contexts": ["editable"],
+            "parentId": "preferences",
+            "type": "checkbox",
+            "onclick": function(info, tab)
+            {
+                toggleAutoLoad(tab.url);
+            }
+        });
+                
     }
 }
 

@@ -87,15 +87,15 @@ document.addEventListener("mousedown", function(e)
         editableArea = e.target;
         
         //Assess application type
-        var type = "normal";
+        var type = TYPE_NORMAL;
         //Look for cPanel's "cpsess" session token in the URL
         if(window.location.href.indexOf("cpsess") > -1)
         {
-            type = "cpanel"; //Quite possibly. I'm fairly sure... maybe.
+            type = TYPE_CPANEL; //Quite possibly. I'm fairly sure... maybe.
         }
     
         //Tell the extension to create/update the context menu
-        chrome.runtime.sendMessage({type: type});
+        chrome.runtime.sendMessage({doWhat: "updateState", type: type, elementID: editableArea.id, url: window.location});
     }
 });
 
@@ -126,11 +126,9 @@ chrome.extension.onMessage.addListener(function(message)
     }
     else
     {
-        //Oups
         if(editableArea === null)
         {
-            //Nothing to do here
-            return;
+            editableArea = document.getElementById(message.elementID);
         }
 
         //Assign ID to the original editable area if there's none
@@ -156,49 +154,76 @@ chrome.extension.onMessage.addListener(function(message)
 
         //Import Ace from a CDN
         var aceJS = document.createElement("script");
-        aceJS.src = "//cdnjs.cloudflare.com/ajax/libs/ace/1.1.2/ace.js";
+        //aceJS.src = "//cdnjs.cloudflare.com/ajax/libs/ace/1.1.2/ace.js";
+        aceJS.src = "//cdnjs.cloudflare.com/ajax/libs/ace/1.1.3/ace.js";
         aceJS.setAttribute("charset", "utf-8");
         //When the script it finally loaded
         aceJS.onload = function()
         {
-            /*
-             * 1. Initialize Ace editor
-             * 
-             * 2. If TYPE_NORMAL keep changes on the original editable area,
-             * so that changes can be saved by the application
-             * 
-             * 3. If TYPE_CPANEL, copy contents to the "CODEWINDOW.value" variable
-             * only when the save button is pressed.
-             */
-            var loadAce = document.createElement("script");
-            loadAce.innerHTML =
-            '\
-                var editableArea = document.getElementById("'+editableArea.id+'")\n\
-                var editor = ace.edit("_aceAnywhereEditor");\n\
-                editor.getSession().setUseWorker(false);\n\
-                editor.getSession().on("change", function(e)\n\
-                {\n\
-                    if(typeof CODEWINDOW === "undefined")\n\
+            var aceExtLanguageTools = document.createElement("script");
+            aceExtLanguageTools.src = "//cdnjs.cloudflare.com/ajax/libs/ace/1.1.3/ext-language_tools.js";
+            aceExtLanguageTools.onload = function()
+            {
+                document.head.appendChild(aceExtLanguageTools);
+                /*
+                 * 1. Initialize Ace editor
+                 * 
+                 * 2. If TYPE_NORMAL keep changes on the original editable area,
+                 * so that changes can be saved by the application
+                 * 
+                 * 3. If TYPE_CPANEL, copy contents to the "CODEWINDOW.value" variable
+                 * only when the save button is pressed.
+                 */
+                var loadAce = document.createElement("script");
+                loadAce.innerHTML =
+                '\
+                    var editableArea = document.getElementById("'+editableArea.id+'")\n\
+                    ace.require("ace/ext/language_tools");\n\
+                    var editor = ace.edit("_aceAnywhereEditor");\n\
+                    editor.setOptions(\n\
                     {\n\
-                        editableArea.innerHTML = editor.getSession().getValue();\n\
-                    }\n\
-                });\n\
-                var sform_submit = document.getElementById("sform_submit");\n\
-                if(sform_submit !== null)\n\
-                {\n\
-                    sform_submit.onclick = function()\n\
+                        enableBasicAutocompletion: true\n\
+                    });\n\
+                    editor.getSession().setUseWorker(false);\n\
+                    editor.getSession().on("change", function(e)\n\
                     {\n\
-                        CODEWINDOW.value = editor.getSession().getValue();\n\
+                        if(typeof CODEWINDOW === "undefined")\n\
+                        {\n\
+                            editableArea.innerHTML = editor.getSession().getValue();\n\
+                        }\n\
+                    });\n\
+                    var sform_submit = document.getElementById("sform_submit");\n\
+                    if(sform_submit !== null)\n\
+                    {\n\
+                        sform_submit.onclick = function()\n\
+                        {\n\
+                            CODEWINDOW.value = editor.getSession().getValue();\n\
+                        }\n\
                     }\n\
-                }\n\
-            ';
-            
-            document.head.appendChild(loadAce);
-            aceEditor.setLanguage(message.language);
-            aceEditor.setTheme(message.theme);
-            aceEditor.setWordWrapping(message.wordWrapping);
+                ';
+
+                document.head.appendChild(loadAce);
+                aceEditor.setLanguage(message.language);
+                aceEditor.setTheme(message.theme);
+                aceEditor.setWordWrapping(message.wordWrapping);
+            };
+        
+            document.head.appendChild(aceExtLanguageTools);
         };
 
         document.head.appendChild(aceJS);
+    }
+});
+
+//Autoload Ace
+chrome.storage.local.get("autoLoadingFields", function(items)
+{
+    if(items["autoLoadingFields"] !== undefined)
+    {
+        var fieldID = items["autoLoadingFields"][window.location.href];
+        if(fieldID !== undefined && fieldID !== false)
+        {
+            chrome.runtime.sendMessage({doWhat: "aceIt", elementID: fieldID});
+        }
     }
 });

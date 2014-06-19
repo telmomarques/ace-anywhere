@@ -28,7 +28,8 @@
         {
             "all_frames": true, 
             "js": ["contentScript.js"],
-            "matches": ["http://*/*", "https://*/*"]
+            "matches": ["http://*/*", "https://*/*"],
+            "run_at": "document_end"
         }
     ]
 }
