@@ -15,7 +15,7 @@ Ace Anywhere uses the [Ace code editor](http://ace.c9.io/).
 ##Features / Usage
 Ace Anywhere creates a context menu available on all editable fields (input, textarea, etc).
 
-Use the `Ace it!` menu to transform the field into an [Ace Code Editor](http://ace.c9.io/).
+Use the `Ace it!` menu to transform the field into an [Ace Code Editor](http://ace.c9.io/). You can also auto load ace every time a page loads by going to `Preferences > Auto load Ace on this URL`.
 
 Syntax highlighting is available through the `Languages` menu. Themes are also made available through the `Themes` menu.
 
