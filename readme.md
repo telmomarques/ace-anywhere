@@ -7,7 +7,7 @@ Ace Anywhere uses the [Ace code editor](http://ace.c9.io/).
 
 ![presentation](presentation.gif)
 
-##Instalation
+##Installation
 1. Download `AceAnywhere.crx`
 2. Open Chrome's extension manager `chrome://extensions/`
 3. Drag the downloaded file and drop it in the extension manager
